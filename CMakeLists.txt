@@ -2,6 +2,7 @@ cmake_minimum_required(VERSION 3.25)
 project(docker-stress-test VERSION 1.0)
 
 set(CMAKE_CXX_STANDARD 20)
+set(CXX_STANDARD_REQUIRED ON)
 
 find_package(Crow REQUIRED)
 
@@ -19,3 +20,5 @@ add_custom_command(TARGET docker-stress-test POST_BUILD
 
 target_link_libraries(docker-stress-test PRIVATE Crow::Crow)
 
+install(TARGETS docker-stress-test RUNTIME DESTINATION bin)
+install(DIRECTORY resources/ DESTINATION bin)

@@ -1,0 +1,1 @@
+apk add g++ cmake git curl wget make boost-dev

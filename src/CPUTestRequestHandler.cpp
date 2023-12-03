@@ -5,6 +5,7 @@
 #include <random>
 #include <cmath>
 #include <thread>
+#include <span>
 
 #include <crow/json.h>
 
