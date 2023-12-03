@@ -66,7 +66,7 @@ HTTPResponse CPUTestRequestHandler::operator()() const
 	size_t blockSize = 1048576;
 
 	int numThreads = std::thread::hardware_concurrency();
-	double mb = double(totalSize) / double(1<<20);
+	double mb = sizeof(float) * double(totalSize) / double(1<<20);
 	mb *= numThreads;
 
 	int repetitions = totalSize/blockSize;

@@ -43,9 +43,9 @@ int main()
 	crow::SimpleApp app;
 
 	CROW_ROUTE(app, "/api/cpu")(wrapHandler(CPUTestRequestHandler {}));
-	CROW_ROUTE(app, "/api/alloc")(wrapHandler(AllocTestRequestHandler{}));
+	CROW_ROUTE(app, "/api/alloc")(wrapHandler(AllocTestRequestHandler {}));
 	CROW_ROUTE(app, "/")(wrapHandler(HomepageRequestHandler {}));
-	CROW_ROUTE(app, "/no-easter-eggs-here-i-swear")(wrapHandler(TestHandler{}));
+	CROW_ROUTE(app, "/no-easter-eggs-here-i-swear")(wrapHandler(TestHandler {}));
 
 	app.port(20311).multithreaded().run();
 }

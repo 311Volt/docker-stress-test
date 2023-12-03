@@ -1,0 +1,10 @@
+services:
+  frontend:
+    image: docker-stress-test
+  backend:
+    image: docker-stress-test
+  rproxy:
+    build: rproxy
+    depends_on: [backend]
+    ports:
+      - "20311:20311"
