@@ -37,8 +37,9 @@ function createLogLine(msg) {
     return el;
 }
 
-function cpuTest() {
-    fetch("/api/cpu")
+
+function cpuTestReq() {
+    return fetch("/api/cpu")
         .then(res => {
             if (res.ok) {
                 return res.json();
@@ -47,16 +48,33 @@ function cpuTest() {
             }
         })
         .then(json => {
-            let msg = `${json.dataProcessedMB} MB processed over ${json.numThreads} threads in ${json.elapsedTimeMs} ms (result = ${json.result})`;
-            document.getElementById("cpu-test-results").appendChild(createLogLine(msg))
+            let msg = `${json.unitsOfWork} units of work completed over ${json.numThreads} threads ` +
+                       `in ${json.elapsedTimeMs.toFixed(2)} ms (result = ${json.result})`;
+            document.getElementById("cpu-test-results").appendChild(createLogLine(msg));
+            return json;
         })
         .catch(err => {
             let msg = `${err.status} - ${err.error}`;
-            document.getElementById("cpu-test-results").appendChild(createLogLine(msg))
+            document.getElementById("cpu-test-results").appendChild(createLogLine(msg));
         })
 }
 
-
+function cpuTest() {
+    nreqs = Number(document.getElementById("cpu-test-parallel-reqs").value)
+    if(isNaN(nreqs)) {
+        alert("invalid input");
+        return;
+    }
+    requests = Array.apply(null, Array(nreqs))
+        .map(_ => cpuTestReq())
+    Promise.all(requests)
+        .then(values => {
+            units = values.map(v => v.unitsOfWork).reduce((a, b) => a+b, 0);
+            totalTime = values.map(v => v.elapsedTimeMs).reduce((a, b) => a+b, 0) / 1000.0;
+            let msg = `Average for batch of requests: ${(units/totalTime).toFixed(2)} units of work per second`
+            document.getElementById("cpu-test-results").appendChild(createLogLine(msg));
+        })
+}
 
 function memTest() {
     let allocSize = document.getElementById("mem-test-alloc-size").value;

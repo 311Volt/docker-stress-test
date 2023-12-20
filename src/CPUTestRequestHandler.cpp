@@ -6,19 +6,11 @@
 #include <cmath>
 #include <thread>
 #include <span>
+#include <numbers>
 
 #include <crow/json.h>
 
-void testFill(std::span<float> elements)
-{
-	static std::minstd_rand gen{std::random_device{}()};
-	float phi = std::uniform_real_distribution<float>(0, 3.1416)(gen);
-	for(int i=0; i<elements.size(); i++) {
-		elements[i] = sinf(phi + i / 256.0);
-	}
-}
-
-float rms(std::span<float> elements)
+float rms(std::span<const float> elements)
 {
 	double acc = 0.0;
 	for(const auto x: elements) {
@@ -28,59 +20,71 @@ float rms(std::span<float> elements)
 }
 
 
-struct CPUTestWorker {
-	size_t blockSize;
-	int repetitions;
+struct TestJob {
+	std::vector<float> data;
 
-	void operator()(float* outResult) const
+	float operator()() const
 	{
-		std::vector<float> block(blockSize);
-
-		for(int i=0; i<repetitions; i++) {
-			testFill(block);
-			*outResult = rms(block);
-		}
-
+		return rms(data);
 	}
 };
 
-float rmsTest(size_t blockSize, int repetitions, int numThreads)
+TestJob generateTestJob()
 {
-	std::vector<CPUTestWorker> workers(
-		numThreads,
-		CPUTestWorker {.blockSize = blockSize, .repetitions = repetitions}
-	);
-	std::vector<float> results(workers.size());
-	{
-		std::vector<std::jthread> threads;
-		for(int i=0; i<workers.size(); i++) {
-			threads.push_back(std::jthread{workers[i], &results[i]});
+	static std::minstd_rand gen{std::random_device{}()};
+	TestJob result;
+	result.data.resize(1048576);
+	for(auto& x: result.data) {
+		x = sinf(std::uniform_real_distribution<float>(0, 2.0*std::numbers::pi)(gen));
+	}
+	return result;
+}
+
+struct CPUTestWorker {
+
+	std::atomic<int>& numCompleted;
+	std::atomic<float>& total;
+
+	void operator()(const std::stop_token& tok) const {
+		while(!tok.stop_requested()) {
+			total += generateTestJob()();
+			++numCompleted;
 		}
 	}
-	return rms(results);
-}
+
+};
 
 HTTPResponse CPUTestRequestHandler::operator()() const
 {
-	size_t totalSize = (1<<20) * 64;
-	size_t blockSize = 1048576;
+	constexpr long testDurationMs = 500;
+
+	std::atomic<int> numCompleted {};
+	std::atomic<float> total {};
 
 	int numThreads = std::thread::hardware_concurrency();
-	double mb = sizeof(float) * double(totalSize) / double(1<<20);
-	mb *= numThreads;
-
-	int repetitions = totalSize/blockSize;
-
 	auto t0 = std::chrono::high_resolution_clock::now();
-	float calcResult = rmsTest(blockSize, repetitions, numThreads);
+	{
+		std::vector<CPUTestWorker> workers(numThreads, CPUTestWorker{numCompleted, total});
+		std::vector<std::jthread> threads;
+		for(auto& worker: workers) {
+			threads.emplace_back(std::jthread{worker});
+		}
+		std::this_thread::sleep_for(std::chrono::milliseconds(testDurationMs));
+		for(auto& thr: threads) {
+			thr.request_stop();
+		}
+	}
 	auto t1 = std::chrono::high_resolution_clock::now();
-	double ms = 1000.0 * std::chrono::duration_cast<std::chrono::duration<double>>(t1 - t0).count();
+
+	float calcResult = total / float(numCompleted);
+
+	using DurationDoubleMs = std::chrono::duration<double, std::milli>;
 
 	crow::json::wvalue result = {
 		{"result", calcResult},
 		{"numThreads", numThreads},
-		{"dataProcessedMB", mb},
-		{"elapsedTimeMs", ms}
+		{"unitsOfWork", int(numCompleted)},
+		{"elapsedTimeMs", std::chrono::duration_cast<DurationDoubleMs>(t1 - t0).count()}
 	};
 	return HTTPResponse{
 		.statusCode = 200,
