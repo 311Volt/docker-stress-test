@@ -8,7 +8,6 @@
 #include <concepts>
 #include <unordered_map>
 
-
 template<typename HandlerT>
 struct CrowRequestHandlerWrapper {
 	HandlerT handler;
@@ -31,6 +30,7 @@ struct CrowRequestHandlerWrapper {
 		}
 	}
 };
+
 
 template<typename HandlerT>
 auto wrapHandler(HandlerT&& handler)

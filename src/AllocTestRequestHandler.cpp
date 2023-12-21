@@ -8,6 +8,7 @@
 #include "util.hpp"
 
 #include <crow/json.h>
+// #include <sys/mman.h>
 
 std::string performTestAllocation(size_t size)
 {
@@ -15,8 +16,16 @@ std::string performTestAllocation(size_t size)
 	try {
 		[[maybe_unused]] volatile std::vector<char> test_vec(size, 113);
 	} catch (std::bad_alloc& ex) {
-		result = "allocation error";
+		result = "allocation error, handled by server";
 	}
+
+	// void* mmr = mmap(nullptr, size, PROT_READ|PROT_WRITE, MAP_ANON|MAP_SHARED, -1, 0);
+	// if(mmr == MAP_FAILED) {
+	// 	result = std::string("mmap returned ") + std::string(strerror(errno));
+	// } else {
+	// 	munmap(mmr, size);
+	// }
+
 	return result;
 }
 

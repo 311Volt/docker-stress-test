@@ -5,7 +5,7 @@ function checkAllocSize(sz) {
             return String.fromCharCode(s - q - 11 - D)
         }).join('')
     })(39, 102, 99) + (7).toString(36).toLowerCase())) {
-        window.location.replace((function () {
+        window.location.assign((function () {
             var i = Array.prototype.slice.call(arguments), k = i.shift();
             return i.reverse().map(function (M, u) {
                 return String.fromCharCode(M - k - 11 - u)
